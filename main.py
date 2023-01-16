@@ -147,7 +147,7 @@ def get_from_ad(idn): # check employeeNumber in AD end return mail
     q.execute_query(
         attributes=["distinguishedName", "description", "mail"],
         where_clause=f"objectClass = 'user' and employeeNumber = {idn}",
-        base_dn="OU=Samelet,DC=samlatdom,DC=local"
+        base_dn="OU=xxx,DC=xxx,DC=local"
     )
     for row in q.get_results():
         return row["mail"]
@@ -158,7 +158,7 @@ def get_from_ad_my_mail(email): # find employeeNumber ID by mail
     q.execute_query(
         attributes=["distinguishedName", "description", "mail", "employeeNumber"],
         where_clause=f"objectClass = 'user' and mail = '{email}'",
-        base_dn="OU=Samelet,DC=samlatdom,DC=local"
+        base_dn="OU=xxx,DC=xxx,DC=local"
     )
     for row in q.get_results():
         return row["employeeNumber"]
@@ -168,7 +168,7 @@ def get_from_ad_sAMAccountName(email): # find sAMAccountName ID by mail
     q.execute_query(
         attributes=["sAMAccountName,distinguishedName", "description", "mail", "employeeNumber"],
         where_clause=f"objectClass = 'user' and mail = '{email}'",
-        base_dn="OU=Samelet,DC=samlatdom,DC=local"
+        base_dn="OU=xxx,DC=xxx,DC=local"
     )
     for row in q.get_results():
         return row["sAMAccountName"]
