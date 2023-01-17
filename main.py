@@ -13,11 +13,11 @@ Url_adduser = ' https://api.wizer-training.com/api/v1/external/user'
 Url_delluser = 'https://api.wizer-training.com/api/v1/external/user/by_email/'
 Url_check_mail = 'https://api.wizer-training.com/api/v1/external/partner_portal/validations/email/'
 # Set the API key
-api_key = 'xxxxxxxxxxxxx'
-csv_file = '\\\\xxx\xxx-share\AD-SAP\PRD\EMP2AD\ZHR_EMP2AD.CSV'
+api_key = 'xxxx'
+csv_file = '\\\\xxx\xxx\AD-SAP\PRD\EMP2AD\ZHR_EMP2AD.CSV'
 csv_user = 'F:\\cyber\\user.csv'
 send_mailbox_username = "DailyReports@xxxx"  # for the mailbox that send the mail
-send_mailbox_password = "xxxx"
+send_mailbox_password = "xxxx!"
 
 ####################################################################
 
@@ -40,9 +40,10 @@ def user_tracking(email, csv_user):
         pass
     else:
         df2 = pd.DataFrame({"user": [email],
-                            "date": [f"{datetime.now():%Y-%m-%d}"],
+                            "date": [f"{datetime.now():%d/%m/%Y}"],
                             "status": ['notcompleted']})
         df3 = pd.concat([df, df2])
+        df3['date'] = pd.to_datetime(df3['date'])
         df3.to_csv(Path(csv_user), index=False)
 
 def selectday(df,numd): # filter num day users start work from csv back to list
@@ -168,7 +169,7 @@ def get_from_ad_sAMAccountName(email): # find sAMAccountName ID by mail
     q.execute_query(
         attributes=["sAMAccountName,distinguishedName", "description", "mail", "employeeNumber"],
         where_clause=f"objectClass = 'user' and mail = '{email}'",
-        base_dn="OU=xxx,DC=xxx,DC=local"
+        base_dn="OU=xxxx,DC=xxxx,DC=local"
     )
     for row in q.get_results():
         return row["sAMAccountName"]
@@ -242,16 +243,22 @@ def disable_user_api(csvfile,Url_delluser):
 
 def manage(response,send_mailbox_username,send_mailbox_password,df,csv_user):
     df = pd.read_csv(Path(csv_user))
+    # df['date'] = pd.to_datetime(df['date']) # convert date to datetime
     for index, row in df.iterrows():
         if row['status'] == 'notcompleted':
             for i in response.json()['userProgress']:
                 if i['email'].lower() == row['user'].lower():
                     if i['status']!= 'Completed':
-                        if datetime.strptime(df.loc[df['user'] == i['email']]['date'].values[0], '%d/%m/%Y') >= datetime.now() - timedelta(days=4): # if user did not completed he will be disabled
+                        print(row['user'].lower())
+                        print(df.loc[df['user'] == i['email']]['date'].values[0])
+                        if datetime.strptime(df.loc[df['user'] == i['email']]['date'].values[0], '%d/%m/%Y') < (datetime.now() - timedelta(days=3)): # if user did not completed he will be disabled
                             print('disable user: ' + i['email'].lower())
-                            # disable_user_AD(get_from_ad_sAMAccountName(i['email'].lower())) # disable AD account
+                            disable_user_AD(get_from_ad_sAMAccountName(i['email'].lower())) # disable AD account
+                            break
                         else:
                             send_worker_mail(i['email'].lower(), send_mailbox_username, send_mailbox_password)
+                            print("Mail sent")
+                            break
                     else:
                         df.loc[df['user'] == i['email'].lower(), 'status'] = 'Completed'
     df.to_csv(Path(csv_user), index=False)
@@ -264,6 +271,6 @@ csvfile = read_csv(csv_file)  #read csv file
 userlist_wiz = get_data(url_get_list, api_key) #get list of users from the site api
 
 ################################################################################
-# disable_user_api(csvfile,Url_delluser) # disable user from the site api
-# add_user(csvfile,userlist_wiz,Url_adduser,api_key) # add user to the site api
+disable_user_api(csvfile,Url_delluser) # disable user from the site api
+add_user(csvfile,userlist_wiz,Url_adduser,api_key,csv_user) # add user to the site api
 manage(userlist_wiz,send_mailbox_username,send_mailbox_password,csvfile,csv_user) # to inform the manager only
